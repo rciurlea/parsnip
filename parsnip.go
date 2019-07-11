@@ -2,24 +2,11 @@ package parsnip
 
 import (
 	"bytes"
-	"context"
 	"encoding/gob"
 	"fmt"
-	"reflect"
 
 	"github.com/pkg/errors"
 )
-
-// Job must be implemented by types that are to be queued for execution
-type Job interface {
-	Run(ctx context.Context) (retry bool, err error)
-}
-
-type jobParams struct {
-	queue   string
-	deps    []string
-	retries uint
-}
 
 // Registry stores "immutable" (after initialization) job information:
 // - all queue names
@@ -52,8 +39,6 @@ func (r *Registry) Print() {
 	}
 }
 
-type JobOption func(*jobParams)
-
 func (r *Registry) Register(j Job, opts ...JobOption) error {
 	params := &jobParams{
 		queue:   defaultQueue,
@@ -68,35 +53,15 @@ func (r *Registry) Register(j Job, opts ...JobOption) error {
 	if err := gob.NewEncoder(&b).Encode(j); err != nil {
 		return errors.Wrap(err, "job not serializable")
 	}
-	typ := reflect.TypeOf(j)
-	jobName := typ.PkgPath() + "." + typ.Name()
-	if _, ok := r.jobs[jobName]; ok {
+	if _, ok := r.jobs[jobName(j)]; ok {
 		return errors.Errorf("%s: job already registered", jobName)
 	}
-	r.jobs[jobName] = params
+	r.jobs[jobName(j)] = params
 	return nil
 }
 
 func (r *Registry) MustRegister(j Job, opts ...JobOption) {
 	if err := r.Register(j, opts...); err != nil {
 		panic(err)
-	}
-}
-
-func OptQueue(q string) JobOption {
-	return func(p *jobParams) {
-		p.queue = q
-	}
-}
-
-func OptRetries(r uint) JobOption {
-	return func(p *jobParams) {
-		p.retries = r
-	}
-}
-
-func OptDeps(deps ...string) JobOption {
-	return func(p *jobParams) {
-		p.deps = deps
 	}
 }
