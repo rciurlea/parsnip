@@ -10,6 +10,6 @@ type A struct {
 }
 
 func (a A) Run(ctx context.Context) (bool, error) {
-	fmt.Println(a)
+	fmt.Println(a.Something)
 	return false, nil
 }

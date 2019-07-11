@@ -11,8 +11,8 @@ type Job interface {
 }
 
 func jobName(j Job) string {
-	typ := reflect.TypeOf(j)
-	return typ.PkgPath() + "." + typ.Name()
+	t := reflect.TypeOf(j)
+	return t.PkgPath() + "." + t.Name()
 }
 
 type jobParams struct {
